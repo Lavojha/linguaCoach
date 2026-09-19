@@ -232,10 +232,10 @@ export default function Home() {
     <main className="shell">
       <header className="hero">
         <div>
-          <div className="brand">LinguaCoach</div>
+          <div><div className="brand">LinguaCoach</div><div className="tagline">Speak. Learn. Improve.</div></div>
           <div className="tagline">Speak. Learn. Improve.</div>
         </div>
-        <div className="status"><span className={connected ? "statusDot live" : "statusDot"} />{status}</div>
+        <div className="heroActions"><a className="progressLink" href="/progress">Progress</a><div className="status"><span className={connected ? "statusDot live" : "statusDot"} />{status}</div></div>
       </header>
 
       <section className="card">
