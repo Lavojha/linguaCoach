@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LANGUAGES, LEVELS, SCENARIOS, type Language, type Level, type ScenarioId } from "../lib/languages";
 import type { CoachAnalysis, TranscriptMessage } from "../lib/coach";
+import { mergeVocabulary } from "../lib/progress";
+import { readStorage, STORAGE_KEYS, writeStorage, type StoredSession, type StoredVocabulary } from "../lib/storage";
 
 const STORAGE_KEY = "linguacoach.preferences";
-const HISTORY_KEY = "linguacoach.session-history";
-
-type SavedSession = { id: string; date: string; language: Language; scenario: ScenarioId; overall: number; summary: string };
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("English");
@@ -20,12 +19,12 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<CoachAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
-  const [history, setHistory] = useState<SavedSession[]>([]);
   const pc = useRef<RTCPeerConnection | null>(null);
   const dc = useRef<RTCDataChannel | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const messagesRef = useRef<TranscriptMessage[]>([]);
+  const sessionStartedAt = useRef<number | null>(null);
 
   const selectedScenario = useMemo(
     () => SCENARIOS.find(item => item.id === scenario) ?? SCENARIOS[0],
@@ -74,7 +73,20 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not analyze the session.");
-      setAnalysis(data.analysis);\n      const session: SavedSession = {\n        id: Date.now().toString(),\n        date: new Date().toISOString(),\n        language,\n        scenario,\n        overall: Number(data.analysis.overall || 0),\n        summary: String(data.analysis.summary || ""),\n      };\n      setHistory(items => {\n        const next = [session, ...items].slice(0, 10);\n        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));\n        return next;\n      });
+      setAnalysis(data.analysis);
+      const durationSeconds = sessionStartedAt.current ? Math.max(1, Math.round((Date.now() - sessionStartedAt.current) / 1000)) : 0;
+      const savedSessions = readStorage<StoredSession[]>(STORAGE_KEYS.sessions, []);
+      const savedVocabulary = readStorage<StoredVocabulary[]>(STORAGE_KEYS.vocabulary, []);
+      const session: StoredSession = {
+        id: Date.now().toString(), createdAt: new Date().toISOString(), language, level, scenario,
+        durationSeconds, userTurns: transcript.filter(item => item.role === "user").length,
+        overall: Number(data.analysis.overall || 0), fluency: Number(data.analysis.fluency || 0),
+        grammar: Number(data.analysis.grammar || 0), vocabulary: Number(data.analysis.vocabulary || 0),
+        confidence: Number(data.analysis.confidence || 0), summary: String(data.analysis.summary || ""),
+      };
+      writeStorage(STORAGE_KEYS.sessions, [session, ...savedSessions].slice(0, 50));
+      writeStorage(STORAGE_KEYS.vocabulary, mergeVocabulary(savedVocabulary, data.analysis.vocabulary || [], language));
+
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not analyze the session.");
     } finally {
@@ -229,10 +241,10 @@ export default function Home() {
     <main className="shell">
       <header className="hero">
         <div>
-          <div className="brand">LinguaCoach</div>
+          <div><div className="brand">LinguaCoach</div><div className="tagline">Speak. Learn. Improve.</div></div>
           <div className="tagline">Speak. Learn. Improve.</div>
         </div>
-        <div className="status"><span className={connected ? "statusDot live" : "statusDot"} />{status}</div>
+        <div className="heroActions"><a className="progressLink" href="/progress">Progress</a><div className="status"><span className={connected ? "statusDot live" : "statusDot"} />{status}</div></div>
       </header>
 
       <section className="card">
