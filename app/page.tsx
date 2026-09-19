@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LANGUAGES, LEVELS, SCENARIOS, type Language, type Level, type ScenarioId } from "../lib/languages";
 import type { CoachAnalysis, TranscriptMessage } from "../lib/coach";
+import { mergeVocabulary } from "../lib/progress";
+import { readStorage, STORAGE_KEYS, writeStorage, type StoredSession, type StoredVocabulary } from "../lib/storage";
 
 const STORAGE_KEY = "linguacoach.preferences";
 const HISTORY_KEY = "linguacoach.session-history";
@@ -26,6 +28,7 @@ export default function Home() {
   const audio = useRef<HTMLAudioElement | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const messagesRef = useRef<TranscriptMessage[]>([]);
+  const sessionStartedAt = useRef<number | null>(null);
 
   const selectedScenario = useMemo(
     () => SCENARIOS.find(item => item.id === scenario) ?? SCENARIOS[0],
@@ -74,7 +77,7 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not analyze the session.");
-      setAnalysis(data.analysis);\n      const session: SavedSession = {\n        id: Date.now().toString(),\n        date: new Date().toISOString(),\n        language,\n        scenario,\n        overall: Number(data.analysis.overall || 0),\n        summary: String(data.analysis.summary || ""),\n      };\n      setHistory(items => {\n        const next = [session, ...items].slice(0, 10);\n        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));\n        return next;\n      });
+      setAnalysis(data.analysis);\n      const durationSeconds = sessionStartedAt.current ? Math.max(1, Math.round((Date.now() - sessionStartedAt.current) / 1000)) : 0;\n      const savedSessions = readStorage<StoredSession[]>(STORAGE_KEYS.sessions, []);\n      const savedVocabulary = readStorage<StoredVocabulary[]>(STORAGE_KEYS.vocabulary, []);\n      const session: StoredSession = {\n        id: Date.now().toString(), createdAt: new Date().toISOString(), language, level, scenario,\n        durationSeconds, userTurns: transcript.filter(item => item.role === "user").length,\n        overall: Number(data.analysis.overall || 0), fluency: Number(data.analysis.fluency || 0),\n        grammar: Number(data.analysis.grammar || 0), vocabulary: Number(data.analysis.vocabulary || 0),\n        confidence: Number(data.analysis.confidence || 0), summary: String(data.analysis.summary || ""),\n      };\n      writeStorage(STORAGE_KEYS.sessions, [session, ...savedSessions].slice(0, 50));\n      writeStorage(STORAGE_KEYS.vocabulary, mergeVocabulary(savedVocabulary, data.analysis.vocabulary || [], language));\n      const session: SavedSession = {\n        id: Date.now().toString(),\n        date: new Date().toISOString(),\n        language,\n        scenario,\n        overall: Number(data.analysis.overall || 0),\n        summary: String(data.analysis.summary || ""),\n      };\n      setHistory(items => {\n        const next = [session, ...items].slice(0, 10);\n        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));\n        return next;\n      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not analyze the session.");
     } finally {
