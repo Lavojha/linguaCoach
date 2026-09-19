@@ -5,6 +5,9 @@ import { LANGUAGES, LEVELS, SCENARIOS, type Language, type Level, type ScenarioI
 import type { CoachAnalysis, TranscriptMessage } from "../lib/coach";
 
 const STORAGE_KEY = "linguacoach.preferences";
+const HISTORY_KEY = "linguacoach.session-history";
+
+type SavedSession = { id: string; date: string; language: Language; scenario: ScenarioId; overall: number; summary: string };
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("English");
@@ -17,6 +20,7 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<CoachAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<SavedSession[]>([]);
   const pc = useRef<RTCPeerConnection | null>(null);
   const dc = useRef<RTCDataChannel | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -70,7 +74,7 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not analyze the session.");
-      setAnalysis(data.analysis);
+      setAnalysis(data.analysis);\n      const session: SavedSession = {\n        id: Date.now().toString(),\n        date: new Date().toISOString(),\n        language,\n        scenario,\n        overall: Number(data.analysis.overall || 0),\n        summary: String(data.analysis.summary || ""),\n      };\n      setHistory(items => {\n        const next = [session, ...items].slice(0, 10);\n        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));\n        return next;\n      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not analyze the session.");
     } finally {
