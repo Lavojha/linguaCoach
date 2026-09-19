@@ -58,3 +58,15 @@ select:disabled{opacity:.6}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
 @media(max-width:720px){.controls{grid-template-columns:1fr}.card{padding:42px 18px 30px}.scoreGrid{grid-template-columns:repeat(3,1fr)}.vocabGrid{grid-template-columns:1fr}}
 @media(max-width:600px){.shell{padding:18px}.hero{margin-bottom:24px}.status{display:none}.orb{width:170px;height:170px}}
+
+.history{width:min(860px,100%);margin:18px auto 0;padding:22px 24px;border:1px solid #202633;border-radius:22px;background:rgba(13,16,23,.82)}
+.historyHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.historyHeader p{margin:5px 0 0;color:#737d8f;font-size:12px}
+.clearButton{border:0;background:transparent;color:#7d8798;font-size:12px;cursor:pointer}
+.clearButton:hover{color:#d2d7e0}
+.historyList{display:grid;gap:7px;margin-top:14px}
+.historyItem{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid #242a36;border-radius:12px;background:#0d1118}
+.historyItem strong{display:block;color:#e4e8ef;font-size:13px;text-transform:capitalize}
+.historyItem span{display:block;color:#778195;font-size:11px;margin-top:3px;text-transform:capitalize}
+.historyScore{min-width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:#151b28;color:#dbe2ff;font-weight:800}
+@media(max-width:600px){.history{padding:18px 15px}.historyHeader{align-items:center}}
