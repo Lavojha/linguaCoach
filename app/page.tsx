@@ -73,7 +73,20 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not analyze the session.");
-      setAnalysis(data.analysis);\n      const durationSeconds = sessionStartedAt.current ? Math.max(1, Math.round((Date.now() - sessionStartedAt.current) / 1000)) : 0;\n      const savedSessions = readStorage<StoredSession[]>(STORAGE_KEYS.sessions, []);\n      const savedVocabulary = readStorage<StoredVocabulary[]>(STORAGE_KEYS.vocabulary, []);\n      const session: StoredSession = {\n        id: Date.now().toString(), createdAt: new Date().toISOString(), language, level, scenario,\n        durationSeconds, userTurns: transcript.filter(item => item.role === "user").length,\n        overall: Number(data.analysis.overall || 0), fluency: Number(data.analysis.fluency || 0),\n        grammar: Number(data.analysis.grammar || 0), vocabulary: Number(data.analysis.vocabulary || 0),\n        confidence: Number(data.analysis.confidence || 0), summary: String(data.analysis.summary || ""),\n      };\n      writeStorage(STORAGE_KEYS.sessions, [session, ...savedSessions].slice(0, 50));\n      writeStorage(STORAGE_KEYS.vocabulary, mergeVocabulary(savedVocabulary, data.analysis.vocabulary || [], language));\n
+      setAnalysis(data.analysis);
+      const durationSeconds = sessionStartedAt.current ? Math.max(1, Math.round((Date.now() - sessionStartedAt.current) / 1000)) : 0;
+      const savedSessions = readStorage<StoredSession[]>(STORAGE_KEYS.sessions, []);
+      const savedVocabulary = readStorage<StoredVocabulary[]>(STORAGE_KEYS.vocabulary, []);
+      const session: StoredSession = {
+        id: Date.now().toString(), createdAt: new Date().toISOString(), language, level, scenario,
+        durationSeconds, userTurns: transcript.filter(item => item.role === "user").length,
+        overall: Number(data.analysis.overall || 0), fluency: Number(data.analysis.fluency || 0),
+        grammar: Number(data.analysis.grammar || 0), vocabulary: Number(data.analysis.vocabulary || 0),
+        confidence: Number(data.analysis.confidence || 0), summary: String(data.analysis.summary || ""),
+      };
+      writeStorage(STORAGE_KEYS.sessions, [session, ...savedSessions].slice(0, 50));
+      writeStorage(STORAGE_KEYS.vocabulary, mergeVocabulary(savedVocabulary, data.analysis.vocabulary || [], language));
+
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not analyze the session.");
     } finally {
