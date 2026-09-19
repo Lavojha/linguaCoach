@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateProgress } from "../../lib/progress";
 import { readStorage, STORAGE_KEYS, type StoredSession, type StoredVocabulary } from "../../lib/storage";
+import "./progress.css";
 
 export default function ProgressPage() {
   const [sessions, setSessions] = useState<StoredSession[]>([]);
