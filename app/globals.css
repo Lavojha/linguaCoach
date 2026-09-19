@@ -70,3 +70,6 @@ select:disabled{opacity:.6}
 .historyItem span{display:block;color:#778195;font-size:11px;margin-top:3px;text-transform:capitalize}
 .historyScore{min-width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:#151b28;color:#dbe2ff;font-weight:800}
 @media(max-width:600px){.history{padding:18px 15px}.historyHeader{align-items:center}}
+
+.heroActions{display:flex;align-items:center;gap:18px}.progressLink{color:#aeb7c8;text-decoration:none;font-size:12px;padding:8px 11px;border:1px solid #282f3d;border-radius:10px}.progressLink:hover{background:#121722;color:#fff}
+@media(max-width:600px){.heroActions{gap:10px}.progressLink{display:none}}
