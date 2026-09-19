@@ -6,7 +6,7 @@ create table if not exists public.profiles (
 
 create table if not exists public.learning_sessions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   language text not null,
   level text not null,
