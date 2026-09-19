@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LANGUAGES, LEVELS, SCENARIOS, type Language, type Level, type ScenarioId } from "../lib/languages";
 import type { CoachAnalysis, TranscriptMessage } from "../lib/coach";
 import { mergeVocabulary } from "../lib/progress";
+import { cloudConfigured, getAuthSession, signIn, signOut, signUp, saveCloudSession, upsertCloudVocabulary } from "../lib/cloud";
 import { readStorage, STORAGE_KEYS, writeStorage, type StoredSession, type StoredVocabulary } from "../lib/storage";
 
 const STORAGE_KEY = "linguacoach.preferences";
@@ -19,6 +20,12 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<CoachAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [authUser, setAuthUser] = useState<{ email?: string } | null>(null);
   const pc = useRef<RTCPeerConnection | null>(null);
   const dc = useRef<RTCDataChannel | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -91,6 +98,25 @@ export default function Home() {
       setError(e instanceof Error ? e.message : "Could not analyze the session.");
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  async function handleAuth() {
+    try {
+      setError("");
+      const session = authMode === "signin"
+        ? await signIn(email, password)
+        : await signUp(email, password, displayName);
+      if (!session) {
+        setError("Account created. Check your email to confirm your account, then sign in.");
+        setAuthMode("signin");
+        return;
+      }
+      setAuthUser(session.user);
+      setAuthOpen(false);
+      setPassword("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Authentication failed.");
     }
   }
 
@@ -244,8 +270,26 @@ export default function Home() {
           <div><div className="brand">LinguaCoach</div><div className="tagline">Speak. Learn. Improve.</div></div>
           <div className="tagline">Speak. Learn. Improve.</div>
         </div>
-        <div className="heroActions"><a className="progressLink" href="/progress">Progress</a><div className="status"><span className={connected ? "statusDot live" : "statusDot"} />{status}</div></div>
+        <div className="heroActions">
+          <a className="progressLink" href="/progress">Progress</a>
+          {cloudConfigured && (authUser ? <button className="accountButton" onClick={() => { signOut(); setAuthUser(null); }}>Sign out</button> : <button className="accountButton" onClick={() => setAuthOpen(true)}>Sign in</button>)}
+          <div className="status"><span className={connected ? "statusDot live" : "statusDot"} />{status}</div>
+        </div>
       </header>
+
+      {authOpen && (
+        <div className="authPanel">
+          <div className="sectionTitle">{authMode === "signin" ? "Sign in to sync progress" : "Create your account"}</div>
+          {authMode === "signup" && <input className="authInput" placeholder="Name" value={displayName} onChange={e => setDisplayName(e.target.value)} />}
+          <input className="authInput" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+          <input className="authInput" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+          <div className="authActions">
+            <button className="primaryButton" onClick={() => void handleAuth()}>{authMode === "signin" ? "Sign in" : "Create account"}</button>
+            <button className="secondaryButton" onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}>{authMode === "signin" ? "Create account" : "I already have an account"}</button>
+            <button className="secondaryButton" onClick={() => setAuthOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       <section className="card">
         <div className="eyebrow">REALTIME AI LANGUAGE COACH</div>

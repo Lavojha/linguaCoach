@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateProgress } from "../../lib/progress";
 import { readStorage, STORAGE_KEYS, type StoredSession, type StoredVocabulary } from "../../lib/storage";
+import { cloudConfigured, getAuthSession, loadCloudData } from "../../lib/cloud";
 import "./progress.css";
 
 export default function ProgressPage() {
@@ -12,6 +13,24 @@ export default function ProgressPage() {
   useEffect(() => {
     setSessions(readStorage<StoredSession[]>(STORAGE_KEYS.sessions, []));
     setVocabulary(readStorage<StoredVocabulary[]>(STORAGE_KEYS.vocabulary, []));
+    if (cloudConfigured && getAuthSession()) {
+      void loadCloudData().then(data => {
+        const cloudSessions: StoredSession[] = (data.sessions || []).map((item: any) => ({
+          id: item.id, createdAt: item.created_at, language: item.language, level: item.level,
+          scenario: item.scenario, durationSeconds: item.duration_seconds, userTurns: item.user_turns,
+          overall: Number(item.overall), fluency: Number(item.fluency), grammar: Number(item.grammar),
+          vocabulary: Number(item.vocabulary), confidence: Number(item.confidence), summary: item.summary,
+        }));
+        const cloudVocabulary: StoredVocabulary[] = (data.vocabulary || []).map((item: any) => ({
+          id: item.id, word: item.word, meaning: item.meaning, example: item.example,
+          language: item.language, firstSeenAt: item.first_seen_at, reviewCount: item.review_count,
+        }));
+        setSessions(cloudSessions);
+        setVocabulary(cloudVocabulary);
+        writeStorage(STORAGE_KEYS.sessions, cloudSessions);
+        writeStorage(STORAGE_KEYS.vocabulary, cloudVocabulary);
+      }).catch(() => undefined);
+    }
   }, []);
 
   const progress = useMemo(() => calculateProgress(sessions), [sessions]);
